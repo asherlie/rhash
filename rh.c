@@ -23,16 +23,29 @@ outside is an array
 #endif
 
 struct ll_entry{
-    struct ll* next;
+    struct ll_entry* next;
     union{
         void* data;
         int val;
     };
 };
 
-struct ll{
-    struct ll_entry* first;
-};
+ struct ll{
+     struct ll_entry* first, * last;
+ };
+
+void insert_ll(struct ll* l, int val, void* data){
+    struct ll_entry* ins_e = malloc(sizeof(struct ll_entry));
+    if(!l->last){
+        l->first = l->last = ins_e;
+    }
+    else{
+        l->last->next = ins_e;
+        l->last = ins_e;
+    }
+    if(data)ins_e->data = data;
+    else ins_e->val = val;
+}
 
 struct rhash{
     /* it's left up to the user to define hashing functions that */
@@ -43,7 +56,8 @@ struct rhash{
 
     union{
         struct rhash* buckets;
-        struct ll_entry* list;
+        /*struct ll_entry* list;*/
+        struct ll* list;
     };
 };
 
