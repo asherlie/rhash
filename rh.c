@@ -11,6 +11,8 @@ depth is configurable
 hash of hashes of ... ints
 #endif
 
+int collisions;
+
 struct ll_entry{
     struct ll_entry* next;
     union{
@@ -69,9 +71,11 @@ void insert_rhash(struct rhash_container* rhc, int val, void* data){
     struct rhash* rh = &rhc->rh;
     int tmp_hash;
 
+    printf("inserting in: ");
     for(int i = 0; i < rhc->levels; ++i){
         if(!rh->buckets)rh->buckets = calloc(sizeof(struct rhash*), rhc->n_bux);
         tmp_hash = hash_exec(rhc, i, val, data);
+        printf("%.2i ", tmp_hash);
 
         /* filling in the actual rhash */
         if(!rh->buckets[tmp_hash]){
@@ -79,6 +83,7 @@ void insert_rhash(struct rhash_container* rhc, int val, void* data){
         }
         rh = rh->buckets[tmp_hash];
     }
+    puts("");
 
     if(!rh->list)rh->list = calloc(1, sizeof(struct ll));
     insert_ll(rh->list, val, data);
@@ -100,12 +105,14 @@ struct ll_entry* lookup_rhash(struct rhash_container* rhc, int val, void* data){
         else{
             if(l->val == val)return l;
         }
+        ++collisions;
     }
     return NULL;
 }
 
 int example_hash_0(int val, void* data){
     (void)data;
+    return val % 100000;
     return val % 7;
 }
 
@@ -119,42 +126,50 @@ int example_hash_2(int val, void* data){
     return val % 11;
 }
 
+int example_hash_3(int val, void* data){
+    (void)data;
+    return val % 17;
+}
+
+int example_hash_4(int val, void* data){
+    (void)data;
+    return val % 19;
+}
+
 int main(){
     struct rhash_container rhc;
     int depth = 5;
-    int (*defined_funcs[3])(int, void*) = {example_hash_0, example_hash_1, example_hash_2};
+    int (*defined_funcs[5])(int, void*) = {example_hash_0, example_hash_1, example_hash_2, example_hash_3, example_hash_4};
     int (**hfuncs)(int, void*) = malloc(sizeof(hfuncs)*depth);
 
     for(int i = 0; i < depth; ++i){
-        hfuncs[i] = defined_funcs[i%3];
+        hfuncs[i] = defined_funcs[i%5];
+        /* TODO: why does the below cause many collisions? */
+        /*hfuncs[i] = defined_funcs[i%3];*/
     }
 
-    /*
-     * hfuncs[0] = example_hash_0;
-     * hfuncs[1] = example_hash_1;
-     * hfuncs[2] = example_hash_2;
-     * hfuncs[3] = example_hash_0;
-     * hfuncs[4] = example_hash_1;
-    */
+    collisions = 0;
+    init_rhash(&rhc, depth, 100, hfuncs, -1);
 
-    init_rhash(&rhc, 5, 20, hfuncs, -1);
+    for(int i = 0; i < 100000; ++i){
+        insert_rhash(&rhc, i, NULL);
+    }
 
-    printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
+    for(int i = 0; i < 100000; ++i){
+        lookup_rhash(&rhc, i, NULL);
+    }
 
-    insert_rhash(&rhc, 32, NULL);
-    insert_rhash(&rhc, 32, NULL);
+    printf("%i collisions!\n", collisions);
 
-    /*
-     * insert_rhash(&rhc, 263, NULL);
-     * insert_rhash(&rhc, 494, NULL);
-     * insert_rhash(&rhc, 725, NULL);
-     * insert_rhash(&rhc, 956, NULL);
-    */
 
-    printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
-    printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
-    printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
-    printf("exists: %p\n", (void*)lookup_rhash(&rhc, 263, NULL));
+/*
+ *     printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
+ * 
+ *     printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
+ *     printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
+ *     printf("exists: %p\n", (void*)lookup_rhash(&rhc, 32, NULL));
+ *     printf("exists: %p\n", (void*)lookup_rhash(&rhc, 263, NULL));
+*/
 
     return 0;
 }
