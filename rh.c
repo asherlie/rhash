@@ -71,6 +71,31 @@ void insert_rhash(struct rhash* rh, int val, void* data){
     */
 }
 
+int example_hash_0(int val, void* data){
+    (void)data;
+    return val % 7;
+}
+
+int example_hash_1(int val, void* data){
+    (void)data;
+    return val % 3;
+}
+
+int example_hash_2(int val, void* data){
+    (void)data;
+    return val % 11;
+}
+
 int main(){
+    struct rhash rh;
+    int (**hfuncs)(int, void*) = malloc(sizeof(hfuncs)*5);
+    hfuncs[0] = example_hash_0;
+    hfuncs[1] = example_hash_1;
+    hfuncs[2] = example_hash_2;
+    hfuncs[3] = example_hash_0;
+    hfuncs[4] = example_hash_1;
+
+    init_rhash(&rh, 5, 20, hfuncs);
+
     return 0;
 }
